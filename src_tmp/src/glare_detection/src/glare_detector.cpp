@@ -89,22 +89,32 @@ cv::Mat glare_detector::combineMaps(const cv::Mat& gphoto, const cv::Mat& ggeo) 
 cv::Mat glare_detector::computePriorityMap(const cv::Mat& gphoto, const cv::Mat& ggeo) {
     cv::Mat priority = cv::Mat::ones(gphoto.size(), CV_8U) * 3;
 
+    #pragma omp parallel for collapse(2)
     for (int y = 0; y < gphoto.rows; ++y) {
         for (int x = 0; x < gphoto.cols; ++x) {
             float p = gphoto.at<float>(y, x);
             float c = ggeo.at<float>(y, x);
-            
-            // 밝고 원형인 glare 존재
-            if (p >= 0.95f && c >= 0.99f) {
+    
+            if (p >= 0.95f && c >= 0.99f)
                 priority.at<uchar>(y, x) = 1;
-            } 
-            // 밝지만 원형은 아닌 glare 존재
-            else if (p >= 0.95f) {
+            else if (p >= 0.95f)
                 priority.at<uchar>(y, x) = 2;
-            } 
         }
     }
     
+    // for (int y = 0; y < gphoto.rows; ++y) {
+    //     for (int x = 0; x < gphoto.cols; ++x) {
+    //         float p = gphoto.at<float>(y, x);
+    //         float c = ggeo.at<float>(y, x);
+            
+    //         if (p >= 0.95f && c >= 0.99f)
+    //             priority.at<uchar>(y, x) = 1;
+    //         else if (p >= 0.95f)
+    //             priority.at<uchar>(y, x) = 2;
+    //     }
+    // }
+    
+
     return priority;
 }
 
