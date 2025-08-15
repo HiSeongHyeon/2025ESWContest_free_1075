@@ -119,6 +119,7 @@ sudo apt install build-essential g++ cmake libopencv-dev python3-opencv python3-
 [![시연 영상](https://img.youtube.com/vi/Lcjh1zH9KA4/0.jpg)](https://www.youtube.com/watch?v=Lcjh1zH9KA4)
 
 ## 👏 포스터
+2025-1학기 서울시립대학교 기계정보공학과 임베디드 시스템 수업 당시 제작한 포스터입니다.
 ![포스터](assets/poster.png)
 
 ## 🤝 팀원
