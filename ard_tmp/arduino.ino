@@ -73,8 +73,14 @@ void setup() {
   // 부저
   pinMode(buzzer, OUTPUT);
 
-  Serial.begin(115200);
-  delay(100);
+  Serial.begin(9600);
+
+  while (Serial.available()){
+    Serial.read();
+  }
+  mainServo.write(112);
+  miniServo.write(0);
+  delay(1000);
 
 
   // Serial 통신 시작
@@ -88,55 +94,81 @@ void setup() {
 // ------------------------- 스텝모터 위치 제어 ----------------------------
 
 void moveTo(int target_left, int target_right) {
-  int steps_needed = abs(target_left - position_left);  // 동일 스텝 수 가정
-  bool dir_left = (target_left > position_left) ? HIGH : LOW;
-  bool dir_right = (target_right > position_right) ? HIGH : LOW;
+  int diff_left = target_left - position_left;
+  int diff_right = target_right - position_right;
+
+  bool dir_left = (diff_left > 0);
+  bool dir_right = (diff_right > 0);
 
   digitalWrite(dir_1, dir_left);
   digitalWrite(dir_2, dir_right);
 
-  for (int i = 0; i < steps_needed; i++) {
-    digitalWrite(steps_1, HIGH);
-    digitalWrite(steps_2, HIGH);
-    delayMicroseconds(1600);
+  int steps_left = abs(diff_left);
+  int steps_right = abs(diff_right);
+  int max_steps = max(steps_left, steps_right);
+
+  for (int i = 0; i < max_steps; i++) {
+    if (i < steps_left) {
+      digitalWrite(steps_1, HIGH);
+    }
+    if (i < steps_right) {
+      digitalWrite(steps_2, HIGH);
+    }
+    delayMicroseconds(400);
     digitalWrite(steps_1, LOW);
     digitalWrite(steps_2, LOW);
-    delayMicroseconds(1600);
+    delayMicroseconds(400);
 
-    position_left  += (dir_left == HIGH) ? 1 : -1;
-    position_right += (dir_right == HIGH) ? 1 : -1;
+    if (i < steps_left) {
+      position_left += dir_left ? 1 : -1;
+    }
+    if (i < steps_right) {
+      position_right += dir_right ? 1 : -1;
+    }
   }
 }
-
 // ----------------------- 계단식 이동 구현 -----------------------------
 
+// void moveToGridPosition(int targetIndex) {
+
+//   if (targetIndex == currentIndex) {
+//     // 현재 위치와 같으면 아무 동작 안함
+//     return;
+//   }
+
+//   int curRow = currentIndex / 3;
+//   int curCol = currentIndex % 3;
+//   int tgtRow = targetIndex / 3;
+//   int tgtCol = targetIndex % 3;
+
+//   // 1단계: 현재 층의 중간으로 이동
+//   if (curCol != 1) {
+//     int midIndex = curRow * 3 + 1;
+//     moveTo(positionTable[midIndex][0], positionTable[midIndex][1]);
+//     currentIndex = midIndex;
+//   }
+//   delay(200);
+
+//   // 2단계: 다른 층의 중간으로 이동
+//   if ((currentIndex / 3) != tgtRow) {
+//     int tgtMidIndex = tgtRow * 3 + 1;
+//     moveTo(positionTable[tgtMidIndex][0], positionTable[tgtMidIndex][1]);
+//     currentIndex = tgtMidIndex;
+//   }
+//   delay(200);
+
+//   // 3단계: 최종 복구
+//   if (currentIndex != targetIndex) {
+//     moveTo(positionTable[targetIndex][0], positionTable[targetIndex][1]);
+//     currentIndex = targetIndex;
+//   }
+// }
+
+// ------------ 바로 타겟 위치로 이동 ------------
 void moveToGridPosition(int targetIndex) {
-  int curRow = currentIndex / 3;
-  int curCol = currentIndex % 3;
-  int tgtRow = targetIndex / 3;
-  int tgtCol = targetIndex % 3;
-
-  // 1단계: 현재 층의 중간으로 이동
-  if (curCol != 1) {
-    int midIndex = curRow * 3 + 1;
-    moveTo(positionTable[midIndex][0], positionTable[midIndex][1]);
-    currentIndex = midIndex;
-  }
-  delay(500);
-
-  // 2단계: 다른 층의 중간으로 이동
-  if ((currentIndex / 3) != tgtRow) {
-    int tgtMidIndex = tgtRow * 3 + 1;
-    moveTo(positionTable[tgtMidIndex][0], positionTable[tgtMidIndex][1]);
-    currentIndex = tgtMidIndex;
-  }
-  delay(500);
-
-  // 3단계: 최종 복구
-  if (currentIndex != targetIndex) {
-    moveTo(positionTable[targetIndex][0], positionTable[targetIndex][1]);
-    currentIndex = targetIndex;
-  }
+  if (targetIndex == currentIndex) return;
+  moveTo(positionTable[targetIndex][0], positionTable[targetIndex][1]);
+  currentIndex = targetIndex;
 }
 
 // ----------------------- 썬가드 작동 함수 -----------------------------
@@ -149,7 +181,7 @@ void sungard_down() {
   delay(500);
   for (int i = 110; i >=0; i--) {
         mainServo.write(i);
-        delay(10);
+        delay(5);
   }
 }
 
@@ -162,7 +194,7 @@ void sungard_up() {
   delay(500);
   for (int i = 0; i <= 110; i++) {
         mainServo.write(i);
-        delay(10);
+        delay(5);
   }
 }
 
@@ -223,7 +255,7 @@ void loop() {
       Serial.write(asciiInput);
       Serial.print("' (DEC: ");
       Serial.print(asciiInput, DEC);
-      Serial.println(")");
+      Serial.println(")"); 
 
       if (asciiInput >= '1' && asciiInput <= '9') {
         int grid_target_1_to_9 = asciiInput - '0'; // 정수 1~9로 변환
