@@ -28,7 +28,7 @@ make
 
 ```bash
 cd src_tmp/build/src/glare_detection
-./solarTracker
+./glareTracker
 ```
 
 ---
