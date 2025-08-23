@@ -37,7 +37,8 @@ public:
 
     double isBrightArea(const cv::Mat& frame);
     double isStandardArea(const cv::Mat& frame);
+
+    cv::Mat findCircularRegions(const cv::Mat& ggeo);
 };
 
 #endif
-
