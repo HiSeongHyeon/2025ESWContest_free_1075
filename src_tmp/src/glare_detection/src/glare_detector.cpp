@@ -102,17 +102,7 @@ cv::Mat glare_detector::computePriorityMap(const cv::Mat& gphoto, const cv::Mat&
         }
     }
     
-    // for (int y = 0; y < gphoto.rows; ++y) {
-    //     for (int x = 0; x < gphoto.cols; ++x) {
-    //         float p = gphoto.at<float>(y, x);
-    //         float c = ggeo.at<float>(y, x);
-            
-    //         if (p >= 0.95f && c >= 0.99f)
-    //             priority.at<uchar>(y, x) = 1;
-    //         else if (p >= 0.95f)
-    //             priority.at<uchar>(y, x) = 2;
-    //     }
-    // }
+
     
 
     return priority;
