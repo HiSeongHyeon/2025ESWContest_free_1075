@@ -25,7 +25,6 @@ class position_queue {
         void push(const Coord& coord);
         int shouldReturnAverage() const;
         Coord getAvgCoord() const;
-        //Coord getAveragePosition() const;
         
     private:
         std::deque<Entry> queue_;
