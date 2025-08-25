@@ -27,7 +27,7 @@ const std::pair<double, double> DEFAULT_GLASS_ORIGIN = {0.0, 1.2};
 
 // 라즈베리 파이 카메라 모듈 v3에 대한 내부 매개변수
 const cv::Mat DEFAULT_CAMERA_MATRIX =
-    (cv::Mat_<double>(3, 3) << 600, 0, 320, 0, 600, 240, 0, 0, 1);
+    (cv::Mat_<double>(3, 3) << 1200, 0, 640, 0, 600, 240, 0, 0, 1);
 
 // 왜곡 계수 (k1, k2, p1, p2, k3)
 const cv::Mat DEFAULT_DISTORTION_COEFFICIENTS =
