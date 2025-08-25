@@ -1,10 +1,14 @@
-# 🚗 SunVisorRobot: 차량 운전자 눈부심 방지 선바이저 로봇
+# 2025 ESW Contest 팀 SUN넘었조
+
+**본 프로젝트는 팀 SUN넘었조의 2025 임베디드 소프트웨어 경진대회 출품작입니다.**
+
+## 🚗 SunVisorRobot: 차량 운전자 눈부심 방지 선바이저 로봇
 
 **차량 운전 중 발생하는 태양 및 강한 조명으로 인한 눈부심(Glare)을 자동으로 감지하고, 지능적으로 선바이저를 제어하여 운전자의 시야를 안전하게 확보하는 임베디드 시스템 프로젝트입니다.**
 
 ## 🌟 프로젝트 목표
 
-*   운전 상황에서 실시간으로 변화하는 눈부심(Glare)을 정확하게 인식합니다.
+*   실시간으로 변화하는 외부 조명 환경에서 Glare를 정확하게 인식합니다.
 *   카메라로 인식된 Glare의 위치를 운전자 시야 기준으로 정밀하게 좌표 변환합니다.
 *   변환된 좌표에 따라 선바이저를 3x3 그리드 영역으로 신속하고 정확하게 이동시켜 효과적으로 눈부심을 차단합니다.
 *   Raspberry Pi에서 고수준 인식 및 판단을, Arduino에서 저수준 모터 제어를 담당하는 분산 시스템으로 구현하여 실시간성과 안정성을 확보합니다.
@@ -33,20 +37,20 @@
 ## 🌳 프로젝트 디렉토리 구조
 
 ```
-Embedded/
+2025ESWContest_free_1075/
 ├── .gitignore
 ├── README.md
 │
 ├── src/ # 소스 코드 루트
 │ ├── glare_detection/ # Glare 감지 및 메인 제어 루프
 │ │ ├── CMakeLists.txt
-│ │ ├── include/ (SunDetector.h, return_position.h)
-│ │ └── src/ (SunDetector.cpp, return_position.cpp, main.cpp)
+│ │ ├── include/ (glare_detector.h, return_position.h)
+│ │ └── src/ (glare_detector.cpp, return_position.cpp, main.cpp, Test Dataset 등)
 │ │
 │ ├── coordinate_mapping/ # 좌표 변환 모듈
 │ │ ├── CMakeLists.txt
 │ │ ├── include/ (config.hpp, coordinates.hpp, get_grid_size.hpp)
-│ │ └── src/ (coordinates.cpp, test_visualization.cpp 등)
+│ │ └── src/ (coordinates.cpp, test.cpp 등)
 │ │
 │ └── serial_communication/ # 시리얼 통신 모듈
 │   ├── CMakeLists.txt
@@ -72,9 +76,6 @@ Embedded/
     *   C++ 컴파일러 (g++ 7.5.0 이상, C++17 지원)
     *   CMake (3.10 이상)
     *   OpenCV 개발 라이브러리 (`libopencv-dev`)
-    *   Python 3.x (주로 빌드 스크립트, 테스트 또는 유틸리티용)
-    *   pip (Python 패키지 관리자)
-    *   PlatformIO Core (예시/Arduino 코드 빌드 및 업로드용, `pip install platformio`로 설치)
     *   Git
 *   **소프트웨어 (개발용 PC - 선택적):**
     *   C++ IDE (VS Code with CMake Tools, CLion 등)
@@ -84,21 +85,21 @@ Embedded/
 
 **1. 소스 코드 클론:**
 ```bash
-git clone https://github.com/HiSeongHyeon/Embedded.git
-cd Embedded
+git clone https://github.com/HiSeongHyeon/2025ESWContest_free_1075.git
+cd 2025ESWContest_free_1075
 ```
 
 **2. 필수 패키지 설치 (Raspberry Pi 터미널에서):**
 ```bash
 sudo apt update
-sudo apt install build-essential g++ cmake libopencv-dev python3-opencv python3-pip git
+sudo apt install build-essential cmake libopencv-dev git
 ```
 
 **3. 개별 빌드 및 실행 (수동으로 진행할 경우):**
 
 *   **C++ 모듈 (Glare 감지 및 메인 제어):**
     ```bash
-    cd Embedded # 프로젝트 루트 (최상위 CMakeLists.txt가 있는 곳)
+    cd 2025ESWContest_free_1075 # 프로젝트 루트 (최상위 CMakeLists.txt가 있는 곳)
     mkdir build && cd build
     cmake ..
     make
@@ -116,7 +117,7 @@ sudo apt install build-essential g++ cmake libopencv-dev python3-opencv python3-
 ## 📽️ 시연 영상
 프로젝트의 작동 방식을 아래 영상으로 확인해보세요.
 
-[![시연 영상](https://img.youtube.com/vi/WS48EyBOEP8/0.jpg)](https://www.youtube.com/watch?v=WS48EyBOEP8)
+[![시연 영상](https://img.youtube.com/vi/URmvz9BOBP8/0.jpg)](https://www.youtube.com/watch?v=URmvz9BOBP8)
 
 ## 🤝 팀원
 
