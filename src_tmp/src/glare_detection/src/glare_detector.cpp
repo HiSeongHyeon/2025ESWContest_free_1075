@@ -60,23 +60,35 @@ cv::Mat glare_detector::computeLocalContrast(const cv::Mat& intensity) {
     return contrast;  // CV_32F 타입, 필요시 normalize해서 시각화 가능
 }
 
+// Geometric map 생성: gphoto map에서 원형률 조건을 만족하는 영역을 찾아 ggeo map으로 반환
+cv::Mat glare_detector::computeGeometricMap(const cv::Mat& gphoto)
+{
+    float minRadius = 5.0; 
+    float maxRadius = 100.0;
+    float circularityThreshold = 0.85;
+    std::vector<std::vector<cv::Point>> contours;
+    std::vector<cv::Point2f> circularCenters;
 
-// Geometric map 생성: Gaussian Blur 후 Hough Circle로 glare 후보 검출
-cv::Mat glare_detector::computeGeometricMap(const cv::Mat& gphoto) {
-    cv::Mat blurred, blurred8u;
-    cv::GaussianBlur(gphoto, blurred, cv::Size(13, 13), 5);
-    blurred.convertTo(blurred8u, CV_8U, 255);
+    cv::Mat binary;
+    gphoto.convertTo(binary, CV_8UC1); // 이진화된 gphoto 이미지
+    cv::threshold(binary, binary, 200, 255, cv::THRESH_BINARY); // 필요시 조정
 
-    std::vector<cv::Vec3f> circles;
-    cv::HoughCircles(blurred8u, circles, cv::HOUGH_GRADIENT, 1, 20, 75, 30, 10, 200);
+    cv::findContours(binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
-    cv::Mat ggeo = cv::Mat::zeros(gphoto.size(), CV_32F);
-    for (const auto& circle : circles) {
-        cv::Point center(cvRound(circle[0]), cvRound(circle[1]));
-        int radius = cvRound(circle[2]);
-        cv::circle(ggeo, center, int(1.5 * radius), cv::Scalar::all(1.0), -1);
+    cv::Mat ggeo = cv::Mat::zeros(gphoto.size(), CV_32FC1);
+
+    for (const auto& contour : contours) {
+        double area = cv::contourArea(contour);
+        double perimeter = cv::arcLength(contour, true);
+        if (area < 1 || perimeter < 4) continue;
+        
+        double circularity = 4.0 * CV_PI * area / (perimeter * perimeter);
+        if (circularity > 1.2) circularity = 1;
+        
+        cv::drawContours(ggeo, std::vector<std::vector<cv::Point>>{contour}, -1,
+                         cv::Scalar(circularity), cv::FILLED);
     }
-    cv::normalize(ggeo, ggeo, 0.0, 1.0, cv::NORM_MINMAX);
+
     return ggeo;
 }
 
@@ -102,9 +114,6 @@ cv::Mat glare_detector::computePriorityMap(const cv::Mat& gphoto, const cv::Mat&
         }
     }
     
-
-    
-
     return priority;
 }
 
@@ -168,36 +177,4 @@ double glare_detector::isStandardArea(const cv::Mat& frame) {
 
     // 정규화된 표준편차 반환 (0~1 범위)
     return stddev[0] / 128.0;  // 128은 대략적인 최대 대비 기준값
-}
-
-// ggeo 이미지에서 원형률 조건을 만족하는 영역의 중심점 좌표 반환
-cv::Mat glare_detector::findCircularRegions(const cv::Mat& ggeo)
-{
-    float minRadius = 5.0; 
-    float maxRadius = 100.0;
-    float circularityThreshold = 0.85;
-    std::vector<std::vector<cv::Point>> contours;
-    std::vector<cv::Point2f> circularCenters;
-
-    cv::Mat binary;
-    ggeo.convertTo(binary, CV_8UC1); // 이진화된 ggeo 이미지
-    cv::threshold(binary, binary, 200, 255, cv::THRESH_BINARY); // 필요시 조정
-
-    cv::findContours(binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-
-    cv::Mat circularityMap = cv::Mat::zeros(ggeo.size(), CV_32FC1);
-
-    for (const auto& contour : contours) {
-        double area = cv::contourArea(contour);
-        double perimeter = cv::arcLength(contour, true);
-        if (area < 1 || perimeter < 4) continue;
-        
-        double circularity = 4.0 * CV_PI * area / (perimeter * perimeter);
-        if (circularity > 1.2) circularity = 1;
-        
-        cv::drawContours(circularityMap, std::vector<std::vector<cv::Point>>{contour}, -1,
-                         cv::Scalar(circularity), cv::FILLED);
-    }
-
-    return circularityMap;
 }

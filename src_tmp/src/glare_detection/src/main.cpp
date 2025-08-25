@@ -47,23 +47,16 @@ int main() {
     // cout << "[Serial] Port " << arduino_port << " opened successfully." << endl;
 
     bool debug_mode = true;
-    // 0.2 -> 0.8
     const double brightness_threshold = 0.2;
     const double stddev_threshold = 0.5;
 
-    // 기존 카메라 스트림 코드
-    const char* cmd =
-        "libcamera-vid -t 0 -n --width 1280 --height 480 --framerate 10 --codec mjpeg -o - 2>/dev/null | "
-        // "ffmpeg -f mjpeg -i - -f image2pipe -vcodec copy -";
-        "ffmpeg -f mjpeg -analyzeduration 10000000 -probesize 10000000 -i - -f image2pipe -vcodec copy -";
-
-    // // 노출 수동 조절 코드
-    // const char* cmd = 
-    //     "libcamera-vid -t 0 -n --width 1280 --height 480 --framerate 7 " 
-    //     "--shutter 100 --gain 1.0 --awbgains 1.2,1.2 "
-    //     "--codec mjpeg -o - 2>/dev/null | "
-    //     "stdbuf -o0 ffmpeg -loglevel quiet -f mjpeg -analyzeduration 10000000 -probesize 10000000 "
-    //     "-i - -f image2pipe -vcodec copy -";
+    // 노출 수동 조절 코드
+    const char* cmd = 
+        "libcamera-vid -t 0 -n --width 1280 --height 480 --framerate 10 " 
+        "--shutter 100 --gain 1.0 --awbgains 1.2,1.2 "
+        "--codec mjpeg -o - 2>/dev/null | "
+        "stdbuf -o0 ffmpeg -loglevel quiet -f mjpeg -analyzeduration 10000000 -probesize 10000000 "
+        "-i - -f image2pipe -vcodec copy -";
 
 
     FILE* pipe = popen(cmd, "r");
@@ -130,17 +123,12 @@ int main() {
             // gphoto map 상에서 원형의 glare를 찾아 ggeo map 생성
             cv::Mat ggeo = gd.computeGeometricMap(gphoto);
 
-            // // ggeo 시각화를 위한 이미지 복사 (ggeo는 float형일 수 있으므로 변환 필요)(여기도 수정 start)
-            // // 만약 기존 코드로 돌리려면 
-            // // 1. 이 부분 전체 주석 처리
-            // // 2. 위에 ggeo 부분 주석 해제
             // cv::Mat ggeo = gd.findCircularRegions(gphoto);
+            
+            // // ggeo 시각화를 위한 코드
             // gphoto.convertTo(ggeo, CV_8UC1, 255.0); // float [0~1] → uchar [0~255]
             // cv::cvtColor(ggeo, ggeo, cv::COLOR_GRAY2BGR); // 색상 이미지로 변환
-
-            // 윈도우에 출력
             // cv::imshow("Circular Glare Candidates", ggeo);
-            /////////////////////////(여기까지)
 
             // gphoto, ggeo map에 따라 priority 부여
             cv::Mat priority = gd.computePriorityMap(gphoto, ggeo);

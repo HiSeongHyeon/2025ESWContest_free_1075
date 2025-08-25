@@ -25,20 +25,17 @@ public:
     cv::Mat computePhotometricMap(const cv::Mat& inputRGB);
     
     // Geometric feature map 계산:
-    // Gphoto 맵에 Gaussian Blur를 적용한 뒤, Hough Circle Transform을 통해 glare 영역 검출.
+    // Gphoto map에 Gphoto map에서 원형률 조건을 만족하는 영역을 찾아 ggeo map으로 반환
     cv::Mat computeGeometricMap(const cv::Mat& gphoto);
     
     cv::Mat combineMaps(const cv::Mat& gphoto, const cv::Mat& ggeo);
-    cv::Mat combineMapsbyprod(const cv::Mat& gphoto, const cv::Mat& ggeo);
     cv::Mat computePriorityMap(const cv::Mat& gphoto, const cv::Mat& ggeo);
-    //void findGlare(const cv::Mat& frame);
     double getDetectedArea() const;
     void drawGlareContours(const cv::Mat& inputImage, cv::Mat& frame);
 
     double isBrightArea(const cv::Mat& frame);
     double isStandardArea(const cv::Mat& frame);
 
-    cv::Mat findCircularRegions(const cv::Mat& ggeo);
 };
 
 #endif
