@@ -37,14 +37,14 @@ int main() {
     cv::Point2f glarePos;
     cv::Point2f avg_glarePos = {0, 0};
 
-    // // 시리얼 포트 초기화
-    // const char *arduino_port = "/dev/ttyACM0"; // <<--- 실제 Arduino 포트
-    // if (!SerialCom::initialize(arduino_port, B9600)) { // Baud rate 9600
-    //     cerr << "Error: Failed to initialize serial port " << arduino_port << endl;
-    // return -1; // 시리얼 포트 열기 실패 시 종료
-    // }
-    // atexit(cleanup_serial_main_handler); // 프로그램 종료 시 포트 자동 닫기 등록
-    // cout << "[Serial] Port " << arduino_port << " opened successfully." << endl;
+    // 시리얼 포트 초기화
+    const char *arduino_port = "/dev/ttyACM0"; // <<--- 실제 Arduino 포트
+    if (!SerialCom::initialize(arduino_port, B9600)) { // Baud rate 9600
+        cerr << "Error: Failed to initialize serial port " << arduino_port << endl;
+    return -1; // 시리얼 포트 열기 실패 시 종료
+    }
+    atexit(cleanup_serial_main_handler); // 프로그램 종료 시 포트 자동 닫기 등록
+    cout << "[Serial] Port " << arduino_port << " opened successfully." << endl;
 
     bool debug_mode = true;
     const double brightness_threshold = 0.2;
@@ -123,8 +123,6 @@ int main() {
             // gphoto map 상에서 원형의 glare를 찾아 ggeo map 생성
             cv::Mat ggeo = gd.computeGeometricMap(gphoto);
 
-            // cv::Mat ggeo = gd.findCircularRegions(gphoto);
-            
             // // ggeo 시각화를 위한 코드
             // gphoto.convertTo(ggeo, CV_8UC1, 255.0); // float [0~1] → uchar [0~255]
             // cv::cvtColor(ggeo, ggeo, cv::COLOR_GRAY2BGR); // 색상 이미지로 변환
@@ -188,10 +186,10 @@ int main() {
             bit_list_for_grid = bit_list;
         }
 
-        // // Arduino 명령 바이트 생성 및 전송
-        // if (!SerialCom::sendCommandToArduino(glare_is_detected_flag, grid_coords)) {
-        //         cerr << "[Main] Error: Failed to send command to Arduino via SerialCom module." << endl;
-        // }
+        // Arduino 명령 바이트 생성 및 전송
+        if (!SerialCom::sendCommandToArduino(glare_is_detected_flag, grid_coords)) {
+                cerr << "[Main] Error: Failed to send command to Arduino via SerialCom module." << endl;
+        }
 
         if (glare_is_detected_flag != prev_detected_flag || grid_coords != prev_grid_coords) {
             if (!SerialCom::sendCommandToArduino(glare_is_detected_flag, grid_coords)) {
