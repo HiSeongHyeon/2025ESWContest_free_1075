@@ -138,68 +138,174 @@ std::pair<int, int> camera_to_driver_coords(
   return {grid_x, grid_y};
 }
 
+// void visualize_grid_on_frame(const cv::Mat &display_frame_in,
+//                              cv::Mat &display_frame_out,
+//                              const std::pair<int, int> &total_grid_dims,
+//                              int step_size) {
+//   if (display_frame_in.empty() || step_size <= 0) {
+//     if (!display_frame_in.empty())
+//       display_frame_in.copyTo(display_frame_out);
+//     return;
+//   }
+
+//   display_frame_in.copyTo(
+//       display_frame_out); // 원본에 그리지 않도록 복사본 사용 또는 직접 그림
+
+//   int img_width = display_frame_in.cols;
+//   int img_height = display_frame_in.rows;
+//   int total_cols = total_grid_dims.first;
+//   int total_rows = total_grid_dims.second;
+
+//   // 각 그리드 인덱스에 대한 색상을 미리 정의
+//   std::vector<cv::Scalar> grid_colors;
+//   for (int r = 0; r < total_rows; ++r) {
+//     for (int c = 0; c < total_cols; ++c) {
+//       // 간단한 색상 생성 로직
+//       grid_colors.push_back(
+//           cv::Scalar((c * 255 / total_cols), (r * 255 / total_rows), 200));
+//     }
+//   }
+//   if (grid_colors.empty())
+//     return; // 그리드가 없으면 종료
+
+//   // 이미지의 각 영역(step_size 간격)을 순회
+//   for (int y_pixel = 0; y_pixel < img_height; y_pixel += step_size) {
+//     for (int x_pixel = 0; x_pixel < img_width; x_pixel += step_size) {
+//       // 현재 픽셀 블록의 중심 좌표
+//       double current_pixel_u = static_cast<double>(x_pixel + step_size / 2);
+//       double current_pixel_v = static_cast<double>(y_pixel + step_size / 2);
+
+//       if (current_pixel_u >= img_width || current_pixel_v >= img_height)
+//         continue;
+
+//       // 이 픽셀 좌표가 어떤 그리드 셀로 매핑되는지 계산
+//       std::pair<double, double> sun_center_for_transform = {current_pixel_u,
+//                                                             current_pixel_v};
+//       std::pair<int, int> mapped_grid =
+//           camera_to_driver_coords(sun_center_for_transform);
+
+//       if (mapped_grid.first != -1 &&
+//           mapped_grid.second != -1) { // 유효한 그리드 좌표로 매핑된 경우
+//         // 1차원 그리드 인덱스로 변환
+//         int grid_1d_idx = mapped_grid.second * total_cols + mapped_grid.first;
+
+//         if (grid_1d_idx >= 0 && grid_1d_idx < grid_colors.size()) {
+//           // 해당 픽셀 블록을 매핑된 그리드의 색상으로 칠하기
+//           cv::Rect roi(x_pixel, y_pixel, step_size, step_size);
+
+//           // 반투명하게 칠하기
+//           cv::Mat roi_mat = display_frame_out(roi);
+//           cv::Mat color_roi(roi.size(), CV_8UC3, grid_colors[grid_1d_idx]);
+//           double alpha = 0.4;
+//           cv::addWeighted(color_roi, alpha, roi_mat, 1.0 - alpha, 0.0, roi_mat);
+//         }
+//       }
+//     }
+//   }
+// }
+
 void visualize_grid_on_frame(const cv::Mat &display_frame_in,
                              cv::Mat &display_frame_out,
                              const std::pair<int, int> &total_grid_dims,
-                             int step_size) {
-  if (display_frame_in.empty() || step_size <= 0) {
-    if (!display_frame_in.empty())
-      display_frame_in.copyTo(display_frame_out);
-    return;
-  }
-
-  display_frame_in.copyTo(
-      display_frame_out); // 원본에 그리지 않도록 복사본 사용 또는 직접 그림
-
-  int img_width = display_frame_in.cols;
-  int img_height = display_frame_in.rows;
-  int total_cols = total_grid_dims.first;
-  int total_rows = total_grid_dims.second;
-
-  // 각 그리드 인덱스에 대한 색상을 미리 정의
-  std::vector<cv::Scalar> grid_colors;
-  for (int r = 0; r < total_rows; ++r) {
-    for (int c = 0; c < total_cols; ++c) {
-      // 간단한 색상 생성 로직
-      grid_colors.push_back(
-          cv::Scalar((c * 255 / total_cols), (r * 255 / total_rows), 200));
+                             int step_size) { // step_size는 호환성을 위해
+    
+    if (display_frame_in.empty()) {
+        return;
     }
-  }
-  if (grid_colors.empty())
-    return; // 그리드가 없으면 종료
 
-  // 이미지의 각 영역(step_size 간격)을 순회
-  for (int y_pixel = 0; y_pixel < img_height; y_pixel += step_size) {
-    for (int x_pixel = 0; x_pixel < img_width; x_pixel += step_size) {
-      // 현재 픽셀 블록의 중심 좌표
-      double current_pixel_u = static_cast<double>(x_pixel + step_size / 2);
-      double current_pixel_v = static_cast<double>(y_pixel + step_size / 2);
+    // 1. 초기 설정 및 데이터 구조 준비
+    display_frame_in.copyTo(display_frame_out); // 원본 이미지를 출력 Mat에 복사
+    int img_w = display_frame_in.cols;
+    int img_h = display_frame_in.rows;
+    int total_cols = total_grid_dims.first;
+    int total_rows = total_grid_dims.second;
 
-      if (current_pixel_u >= img_width || current_pixel_v >= img_height)
-        continue;
+    std::vector<std::vector<cv::Point>> points_per_grid(total_cols * total_rows);
+    cv::Mat grid_coords_map(img_h, img_w, CV_32SC2);
 
-      // 이 픽셀 좌표가 어떤 그리드 셀로 매핑되는지 계산
-      std::pair<double, double> sun_center_for_transform = {current_pixel_u,
-                                                            current_pixel_v};
-      std::pair<int, int> mapped_grid =
-          camera_to_driver_coords(sun_center_for_transform);
+    std::vector<std::vector<int>> vertical_boundary_x_coords(total_cols - 1);
+    std::vector<std::vector<cv::Point>> horizontal_boundary_points(total_rows - 1);
 
-      if (mapped_grid.first != -1 &&
-          mapped_grid.second != -1) { // 유효한 그리드 좌표로 매핑된 경우
-        // 1차원 그리드 인덱스로 변환
-        int grid_1d_idx = mapped_grid.second * total_cols + mapped_grid.first;
-
-        if (grid_1d_idx >= 0 && grid_1d_idx < grid_colors.size()) {
-          // 해당 픽셀 블록을 매핑된 그리드의 색상으로 칠하기
-          cv::Rect roi(x_pixel, y_pixel, step_size, step_size);
-
-          // 반투명하게 칠하기
-          cv::Mat roi_mat = display_frame_out(roi);
-          cv::Mat color_roi(roi.size(), CV_8UC3, grid_colors[grid_1d_idx]);
-          double alpha = 0.4;
-          cv::addWeighted(color_roi, alpha, roi_mat, 1.0 - alpha, 0.0, roi_mat);
+    // 2. 모든 픽셀에 대한 그리드 좌표 계산
+    for (int y = 0; y < img_h; ++y) {
+        for (int x = 0; x < img_w; ++x) {
+            std::pair<int, int> grid_coord = camera_to_driver_coords(
+                {static_cast<double>(x), static_cast<double>(y)}
+            );
+            
+            int gx = grid_coord.first;
+            int gy = grid_coord.second;
+            
+            grid_coords_map.at<cv::Vec2i>(y, x) = cv::Vec2i(gx, gy);
+            if (gy * total_cols + gx < points_per_grid.size()) {
+                points_per_grid[gy * total_cols + gx].push_back(cv::Point(x, y));
+            }
         }
-      }
     }
-  }
+
+    // 3. 그리드 맵을 순회하며 경계점 찾기
+    for (int y = 0; y < img_h - 1; ++y) {
+        for (int x = 0; x < img_w - 1; ++x) {
+            cv::Vec2i current_grid = grid_coords_map.at<cv::Vec2i>(y, x);
+            int gx_curr = current_grid[0];
+            int gy_curr = current_grid[1];
+
+            int gx_next = grid_coords_map.at<cv::Vec2i>(y, x + 1)[0];
+            if (gx_curr != gx_next) {
+                int boundary_idx = std::min(gx_curr, gx_next);
+                if (boundary_idx < vertical_boundary_x_coords.size()) {
+                    vertical_boundary_x_coords[boundary_idx].push_back(x + 1);
+                }
+            }
+
+            int gy_next = grid_coords_map.at<cv::Vec2i>(y + 1, x)[1];
+            if (gy_curr != gy_next) {
+                int boundary_idx = std::min(gy_curr, gy_next);
+                if (boundary_idx < horizontal_boundary_points.size()) {
+                    horizontal_boundary_points[boundary_idx].push_back(cv::Point(x, y + 1));
+                }
+            }
+        }
+    }
+
+    // 4. 경계선 및 숫자 그리기
+    cv::Scalar line_color(255, 255, 255); // 흰색
+    int line_thickness = 3;
+
+    // 수직선 (평균 x 좌표를 계산하여 직선으로 그림)
+    for (const auto& x_coords : vertical_boundary_x_coords) {
+        if (!x_coords.empty()) {
+            long long sum = std::accumulate(x_coords.begin(), x_coords.end(), 0LL);
+            int avg_x = static_cast<int>(sum / x_coords.size());
+            cv::line(display_frame_out, cv::Point(avg_x, 0), cv::Point(avg_x, img_h - 1), line_color, line_thickness, cv::LINE_AA);
+        }
+    }
+
+    // 수평선 (찾은 모든 경계점을 그대로 그려 자연스러운 곡선)
+    for (const auto& points : horizontal_boundary_points) {
+        for (const auto& point : points) {
+            // 점을 찍어 선처럼 보이게 함
+            cv::circle(display_frame_out, point, 1, line_color, -1, cv::LINE_AA);
+        }
+    }
+    
+    // 그리드 번호 그리기
+    for (size_t i = 0; i < points_per_grid.size(); ++i) {
+        if (points_per_grid[i].empty()) continue;
+
+        cv::Scalar center_scalar = cv::mean(points_per_grid[i]);
+        cv::Point center_point(static_cast<int>(center_scalar[0]), static_cast<int>(center_scalar[1]));
+
+        std::string number_text = std::to_string(i + 1);
+        double font_scale = 2.0;
+        int font_thickness = 5;
+
+        cv::Size text_size = cv::getTextSize(number_text, cv::FONT_HERSHEY_SIMPLEX, font_scale, font_thickness, nullptr);
+        cv::Point text_origin(center_point.x - text_size.width / 2, center_point.y + text_size.height / 2);
+
+        cv::putText(display_frame_out, number_text, text_origin, cv::FONT_HERSHEY_SIMPLEX, font_scale, 
+                    cv::Scalar(0, 0, 0), font_thickness + 3, cv::LINE_AA);
+        cv::putText(display_frame_out, number_text, text_origin, cv::FONT_HERSHEY_SIMPLEX, font_scale, 
+                    line_color, font_thickness, cv::LINE_AA);
+    }
 }
