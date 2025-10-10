@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <vector>
+#include <numeric>
 
 inline double to_radians(double degrees) { return degrees * CV_PI / 180.0; }
 
@@ -270,13 +271,15 @@ void visualize_grid_on_frame(const cv::Mat &display_frame_in,
 
     // 4. 경계선 및 숫자 그리기
     cv::Scalar line_color(255, 255, 255); // 흰색
-    int line_thickness = 3;
+    int line_thickness = 3; // 두께 조절
 
     // 수직선 (평균 x 좌표를 계산하여 직선으로 그림)
+    std::vector<int> avg_vertical_x; // 숫자 정렬에 재사용하기 위해 별도 저장
     for (const auto& x_coords : vertical_boundary_x_coords) {
         if (!x_coords.empty()) {
             long long sum = std::accumulate(x_coords.begin(), x_coords.end(), 0LL);
             int avg_x = static_cast<int>(sum / x_coords.size());
+            avg_vertical_x.push_back(avg_x); // 평균값 저장
             cv::line(display_frame_out, cv::Point(avg_x, 0), cv::Point(avg_x, img_h - 1), line_color, line_thickness, cv::LINE_AA);
         }
     }
@@ -288,24 +291,59 @@ void visualize_grid_on_frame(const cv::Mat &display_frame_in,
             cv::circle(display_frame_out, point, 1, line_color, -1, cv::LINE_AA);
         }
     }
+
+    // 열(column) 경계 정의
+    std::vector<int> col_bounds = {0};
+    col_bounds.insert(col_bounds.end(), avg_vertical_x.begin(), avg_vertical_x.end());
+    col_bounds.push_back(img_w);
+
+    // 행(row) 경계 정의 (각 수평선의 전체 평균 y 사용)
+    std::vector<int> avg_horizontal_y_overall;
+    for (const auto& points : horizontal_boundary_points) {
+        if (!points.empty()) {
+            long long sum_y = 0;
+            for (const auto& p : points) {
+                sum_y += p.y;
+            }
+            avg_horizontal_y_overall.push_back(static_cast<int>(sum_y / points.size()));
+        }
+    }
+    std::vector<int> row_bounds = {0};
+    row_bounds.insert(row_bounds.end(), avg_horizontal_y_overall.begin(), avg_horizontal_y_overall.end());
+    row_bounds.push_back(img_h);
     
     // 그리드 번호 그리기
-    for (size_t i = 0; i < points_per_grid.size(); ++i) {
-        if (points_per_grid[i].empty()) continue;
+    for (int i = 0; i < total_cols * total_rows; ++i) {
+        int c = i % total_cols; // 현재 셀의 열(column) 인덱스
+        int r = i / total_cols; // 현재 셀의 행(row) 인덱스
 
-        cv::Scalar center_scalar = cv::mean(points_per_grid[i]);
-        cv::Point center_point(static_cast<int>(center_scalar[0]), static_cast<int>(center_scalar[1]));
+        // 안전 장치: 경계 배열의 크기를 초과하지 않도록 확인
+        if (c + 1 >= col_bounds.size() || r + 1 >= row_bounds.size()) continue;
+
+        // 이상적인 그리드 셀의 우측 하단 좌표
+        int ideal_right = col_bounds[c + 1];
+        int ideal_bottom = row_bounds[r + 1];
 
         std::string number_text = std::to_string(i + 1);
-        double font_scale = 2.0;
-        int font_thickness = 5;
-
-        cv::Size text_size = cv::getTextSize(number_text, cv::FONT_HERSHEY_SIMPLEX, font_scale, font_thickness, nullptr);
-        cv::Point text_origin(center_point.x - text_size.width / 2, center_point.y + text_size.height / 2);
-
+        double font_scale = 1.0;     // 크기
+        int font_thickness = 2;      // 두께 조절
+        int padding = 10;            // 여백
+        
+        int baseline = 0;
+        cv::Size text_size = cv::getTextSize(number_text, cv::FONT_HERSHEY_SIMPLEX, font_scale, font_thickness, &baseline);
+        
+        // 이상적인 경계를 기준으로 텍스트 위치 계산
+        cv::Point text_origin(
+            ideal_right - text_size.width - padding,
+            ideal_bottom - padding
+        );
+        
+        cv::Scalar text_color(0, 0, 255); // BGR
+        
+        // 검은색 외곽선(가독성) -> 빨간색 텍스트
         cv::putText(display_frame_out, number_text, text_origin, cv::FONT_HERSHEY_SIMPLEX, font_scale, 
-                    cv::Scalar(0, 0, 0), font_thickness + 3, cv::LINE_AA);
+                    cv::Scalar(0, 0, 0), font_thickness + 2, cv::LINE_AA);
         cv::putText(display_frame_out, number_text, text_origin, cv::FONT_HERSHEY_SIMPLEX, font_scale, 
-                    line_color, font_thickness, cv::LINE_AA);
+                    text_color, font_thickness, cv::LINE_AA);
     }
 }
