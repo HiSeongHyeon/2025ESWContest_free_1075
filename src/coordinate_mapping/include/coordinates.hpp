@@ -32,4 +32,25 @@ void visualize_grid_on_frame(
     const std::pair<int, int> &total_grid_dims,
     int step_size = 20 // 얼마나 촘촘하게 확인할지 결정하는 스텝
 );
+
+// GridVisualizationData 클래스 선언
+struct GridVisualizationData {
+    std::vector<int> avg_vertical_x;
+    std::vector<std::vector<cv::Point>> horizontal_boundary_points;
+    std::vector<int> col_bounds;
+    std::vector<int> row_bounds;
+};
+
+// precompute_grid_visualization_data 함수 선언
+GridVisualizationData precompute_grid_visualization_data(
+        int img_w, int img_h, 
+        const std::pair<int, int>& total_grid_dims
+);
+
+// draw_precomputed_grid 함수 선언
+void draw_precomputed_grid(
+    const cv::Mat& frame_in, cv::Mat& frame_out, 
+    const GridVisualizationData& data, 
+    const std::pair<int, int>& total_grid_dims
+);
 #endif // COORDINATES_HPP

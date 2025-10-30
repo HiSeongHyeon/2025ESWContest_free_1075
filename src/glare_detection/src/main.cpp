@@ -70,6 +70,16 @@ int main() {
     bool start_found = false;
     bool first_frame = true;
 
+    // 그리드 계산
+    #ifdef GRID_TEST
+        std::pair<int, int> grid_dims = get_grid_size();
+        GridVisualizationData grid_data = precompute_grid_visualization_data(
+            DEFAULT_IMAGE_SIZE.first, 
+            DEFAULT_IMAGE_SIZE.second, 
+            grid_dims
+        );
+    #endif
+
     while (true) {
         ////////////////////      카메라 파이프 연결      ////////////////////
         buffer.clear();
@@ -186,18 +196,20 @@ int main() {
             bit_list_for_grid = bit_list;
         }
 
-        // Arduino 명령 바이트 생성 및 전송
-        if (!SerialCom::sendCommandToArduino(glare_is_detected_flag, grid_coords)) {
-                cerr << "[Main] Error: Failed to send command to Arduino via SerialCom module." << endl;
-        }
+        // // Arduino 명령 바이트 생성 및 전송
+        // if (!SerialCom::sendCommandToArduino(glare_is_detected_flag, grid_coords)) {
+        //         cerr << "[Main] Error: Failed to send command to Arduino via SerialCom module." << endl;
+        // }
 
         if (glare_is_detected_flag != prev_detected_flag || grid_coords != prev_grid_coords) {
             if (!SerialCom::sendCommandToArduino(glare_is_detected_flag, grid_coords)) {
                 cerr << "[Main] Error: Failed to send command to Arduino via SerialCom module." << endl;
             }
-            prev_detected_flag = glare_is_detected_flag;
-            prev_grid_coords = grid_coords;
-        } //asd
+            else {
+                prev_detected_flag = glare_is_detected_flag;
+                prev_grid_coords = grid_coords;
+            }
+        }
 
         // 실행시간 측정 종료
         auto end = high_resolution_clock::now();
@@ -205,22 +217,15 @@ int main() {
 
         cout << "Total Processing time: " << duration << " ms\n";
 
-        // 좌표 변환 시각화 함수 (테스트용)
+        // 좌표 변환 시각화 함수
         #ifdef GRID_TEST
-            std::pair<int, int> grid_dims_to_visualize = 
-            get_grid_size(); // 전체 그리드 크기 가져오기
+            cv::Mat frame_with_grid;
+            draw_precomputed_grid(frame, frame_with_grid, grid_data, grid_dims);
 
-            cv::Mat frame_with_grid; // 결과를 받을 Mat
-
-            visualize_grid_on_frame(frame,
-                                    frame_with_grid, 
-                                    grid_dims_to_visualize
-                                    );
-
-            // imshow("visualize grid index", frame_with_grid);
+            imshow("visualize grid index", frame_with_grid);
         #endif
 
-        // cv::imshow("glare Detection", frame);
+        cv::imshow("glare Detection", frame);
 
         buffer.clear();
 

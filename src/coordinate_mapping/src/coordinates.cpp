@@ -346,4 +346,111 @@ void visualize_grid_on_frame(const cv::Mat &display_frame_in,
         cv::putText(display_frame_out, number_text, text_origin, cv::FONT_HERSHEY_SIMPLEX, font_scale, 
                     text_color, font_thickness, cv::LINE_AA);
     }
+
+    // 그리드 계산 함수
+    GridVisualizationData precompute_grid_visualization_data(
+        int img_w, int img_h, const std::pair<int, int>& total_grid_dims) {
+
+        GridVisualizationData data; // 반환할 데이터 구조체
+        int total_cols = total_grid_dims.first;
+        int total_rows = total_grid_dims.second;
+
+        cv::Mat grid_coords_map(img_h, img_w, CV_32SC2);
+        std::vector<std::vector<int>> vertical_boundary_x_coords(total_cols > 1 ? total_cols - 1 : 0);
+        data.horizontal_boundary_points.resize(total_rows > 1 ? total_rows - 1 : 0);
+
+        for (int y = 0; y < img_h; ++y) {
+            for (int x = 0; x < img_w; ++x) {
+                std::pair<int, int> grid_coord = camera_to_driver_coords(
+                    {static_cast<double>(x), static_cast<double>(y)}
+                );
+                grid_coords_map.at<cv::Vec2i>(y, x) = cv::Vec2i(grid_coord.first, grid_coord.second);
+            }
+        }
+
+        for (int y = 0; y < img_h - 1; ++y) {
+            for (int x = 0; x < img_w - 1; ++x) {
+                cv::Vec2i current_grid = grid_coords_map.at<cv::Vec2i>(y, x);
+                int gx_curr = current_grid[0], gy_curr = current_grid[1];
+                
+                int gx_next = grid_coords_map.at<cv::Vec2i>(y, x + 1)[0];
+                if (gx_curr != gx_next) {
+                    vertical_boundary_x_coords[std::min(gx_curr, gx_next)].push_back(x + 1);
+                }
+
+                int gy_next = grid_coords_map.at<cv::Vec2i>(y + 1, x)[1];
+                if (gy_curr != gy_next) {
+                    data.horizontal_boundary_points[std::min(gy_curr, gy_next)].push_back(cv::Point(x, y + 1));
+                }
+            }
+        }
+
+        // 계산된 결과를 구조체에 저장
+        for (const auto& x_coords : vertical_boundary_x_coords) {
+            if (!x_coords.empty()) {
+                long long sum = std::accumulate(x_coords.begin(), x_coords.end(), 0LL);
+                data.avg_vertical_x.push_back(static_cast<int>(sum / x_coords.size()));
+            }
+        }
+
+        data.col_bounds = {0};
+        data.col_bounds.insert(data.col_bounds.end(), data.avg_vertical_x.begin(), data.avg_vertical_x.end());
+        data.col_bounds.push_back(img_w);
+
+        for (const auto& points : data.horizontal_boundary_points) {
+            if (!points.empty()) {
+                long long sum_y = 0;
+                for (const auto& p : points) sum_y += p.y;
+                data.row_bounds.push_back(static_cast<int>(sum_y / points.size()));
+            }
+        }
+        data.row_bounds.insert(data.row_bounds.begin(), 0);
+        data.row_bounds.push_back(img_h);
+
+        return data;
+    }
+
+
+    // 그리드 그리기 함수
+    void draw_precomputed_grid(const cv::Mat& frame_in, cv::Mat& frame_out, 
+                            const GridVisualizationData& data, 
+                            const std::pair<int, int>& total_grid_dims) {
+        frame_in.copyTo(frame_out);
+        int total_cols = total_grid_dims.first;
+        int total_rows = total_grid_dims.second;
+
+        cv::Scalar line_color(255, 255, 255);
+        int line_thickness = 3;
+
+        for (int x_coord : data.avg_vertical_x) {
+            cv::line(frame_out, cv::Point(x_coord, 0), cv::Point(x_coord, frame_out.rows - 1), line_color, line_thickness, cv::LINE_AA);
+        }
+        for (const auto& points : data.horizontal_boundary_points) {
+            for (const auto& point : points) {
+                cv::circle(frame_out, point, 1, line_color, -1, cv::LINE_AA);
+            }
+        }
+
+        for (int i = 0; i < total_cols * total_rows; ++i) {
+            int c = i % total_cols;
+            int r = i / total_cols;
+            if (c + 1 >= data.col_bounds.size() || r + 1 >= data.row_bounds.size()) continue;
+
+            int ideal_right = data.col_bounds[c + 1];
+            int ideal_bottom = data.row_bounds[r + 1];
+
+            std::string number_text = std::to_string(i + 1);
+            double font_scale = 1.0;
+            int font_thickness = 2;
+            int padding = 10;
+            
+            int baseline = 0;
+            cv::Size text_size = cv::getTextSize(number_text, cv::FONT_HERSHEY_SIMPLEX, font_scale, font_thickness, &baseline);
+            cv::Point text_origin(ideal_right - text_size.width - padding, ideal_bottom - padding);
+            cv::Scalar text_color(0, 0, 255);
+            
+            cv::putText(frame_out, number_text, text_origin, cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0, 0, 0), font_thickness + 2, cv::LINE_AA);
+            cv::putText(frame_out, number_text, text_origin, cv::FONT_HERSHEY_SIMPLEX, font_scale, text_color, font_thickness, cv::LINE_AA);
+        }
+    }
 }
