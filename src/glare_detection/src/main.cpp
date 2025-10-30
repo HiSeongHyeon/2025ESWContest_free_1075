@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <chrono>
+#include <unistd.h>
 
 // 추가
 #include <utility> // std::pair
@@ -46,6 +47,10 @@ int main() {
     atexit(cleanup_serial_main_handler); // 프로그램 종료 시 포트 자동 닫기 등록
     cout << "[Serial] Port " << arduino_port << " opened successfully." << endl;
 
+    cout << "[Serial] Waiting for Arduino to initialize" << endl;
+    sleep(2);
+    cout << "[Serial] Arduino should be ready." << endl;
+
     bool debug_mode = true;
     const double brightness_threshold = 0.2;
     const double stddev_threshold = 0.5;
@@ -70,7 +75,7 @@ int main() {
     bool start_found = false;
     bool first_frame = true;
 
-    // 그리드 계산
+    // 그리드 시각화 계산 함수
     #ifdef GRID_TEST
         std::pair<int, int> grid_dims = get_grid_size();
         GridVisualizationData grid_data = precompute_grid_visualization_data(
@@ -232,6 +237,7 @@ int main() {
         if (waitKey(1) == 27) {
             glare_is_detected_flag = 0;
             SerialCom::sendCommandToArduino(glare_is_detected_flag, grid_coords);
+            usleep(100000)
             break;
         }
         frame.release();
