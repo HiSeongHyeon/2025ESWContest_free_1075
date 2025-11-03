@@ -211,6 +211,7 @@ int main() {
                 cerr << "[Main] Error: Failed to send command to Arduino via SerialCom module." << endl;
             }
             else {
+                cout << "[Main] Info: Grid Coordinates successfully sent to Arduino." << endl;
                 prev_detected_flag = glare_is_detected_flag;
                 prev_grid_coords = grid_coords;
             }
@@ -237,7 +238,7 @@ int main() {
         if (waitKey(1) == 27) {
             glare_is_detected_flag = 0;
             SerialCom::sendCommandToArduino(glare_is_detected_flag, grid_coords);
-            usleep(100000)
+            usleep(100000);
             break;
         }
         frame.release();
